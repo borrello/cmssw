@@ -274,8 +274,8 @@ process.pfJetResValidation1.SkimParameter.switchOn = cms.bool(True)
 process.pfJetResValidation2.SkimParameter.switchOn = cms.bool(True)
 
 process.load("Validation.RecoParticleFlow.PFElectronValidation_cff") 
-# needed to run Muon validation: it need tag V00-10-01 not yet in CMSSW_6_2_0
 #process.load("Validation.RecoParticleFlow.PFMuonValidation_cff")
+process.load("Validation.RecoMET.METRelValForDQM_cff")
 
 # The complete reprocessing
 process.p = cms.Path(
@@ -284,15 +284,13 @@ process.p = cms.Path(
     process.pfJetValidationSequence +
     process.pfMETValidationSequence +
     process.pfJetResValidationSequence +
+    process.METValidation +
 #    process.pfMuonValidationSequence +  
     process.pfElectronValidationSequence +
-#    process.pfElectronBenchmarkGeneric + # replaced by pfElectronBenchmarkGeneric
     process.MEtoEDMConverter
     )
 
 process.outpath = cms.EndPath(
     process.EDM
-    #+ process.reco 
-    #+ process.display
     )
 
