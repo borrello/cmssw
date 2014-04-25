@@ -41,8 +41,9 @@ namespace edm {
     virtual void closeFile_();
     virtual void reset_();
     
-    virtual bool checkNewData(int lumi);
-    virtual bool checkNextLS();
+    //    virtual bool checkNewData(int lumi);
+    virtual int newData(int lumi);
+    virtual bool nextLS();
     virtual void openNewFile(std::string filename);
     std::string getDataFile(int lumi);
     virtual bool isEndOfRun();

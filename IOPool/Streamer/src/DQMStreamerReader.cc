@@ -35,7 +35,7 @@ namespace edm {
   }
 
   void DQMStreamerReader::reset_() {
-    while (!checkNewData(currentLumiSection_)){
+    while (newData(currentLumiSection_)<1){
       currentLumiSection_ += 1;
     }
     streamerName_ = getDataFile(currentLumiSection_); 
@@ -82,21 +82,22 @@ namespace edm {
     return boost::filesystem::exists(endOfRunFileName_);
   }
 
-  bool DQMStreamerReader::checkNewData(int lumi){ 
+  int DQMStreamerReader::newData(int lumi){ 
     if ( !boost::filesystem::exists(make_path(lumi))){
       std::cout << "Json file " << make_path(lumi) << " not found!" << std::endl;
-      return false;
-    }
-    DQMJSON dqmjson = loadJSON(lumi);
-    totalEventPerLs_ = dqmjson.n_events;
-    if (totalEventPerLs_ > 0){
-      std::cout << " CheckNewData: JSON file " << make_path(lumi) << " has " << totalEventPerLs_ << " events" << std::endl; 
-      return true;
+      return -1;
     }else{
-      std::cout << " WARNING: CheckNewData: JSON file " << make_path(lumi) << " has no events" << std::endl; 
-      return false;
+      std::cout << "Checking JSOn file for lumi " << lumi << std::endl;
+      DQMJSON dqmjson = loadJSON(lumi);
+      totalEventPerLs_ = dqmjson.n_events;
+      if (totalEventPerLs_ > 0){
+	std::cout << " CheckNewData: JSON file " << make_path(lumi) << " has " << totalEventPerLs_ << " events" << std::endl; 
+	return 1;
+      }else{
+	std::cout << " WARNING: CheckNewData: JSON file " << make_path(lumi) << " has no events" << std::endl; 
+	return 0;
+      }
     }
-    return false;
   }
     
   std::string DQMStreamerReader::to_padded_string(int n, std::size_t min_length)
@@ -122,8 +123,12 @@ namespace edm {
 
   bool DQMStreamerReader::checkNextEvent() {
     if ( processedEventPerLs_ > 0){
-      std::cout << "***** checkNextEvent: at least one processed event: check if new LS exist" << std::endl;     
-      if ( checkNextLS() ){
+      std::cout << "**** checkNextEvent: at least one processed event: check if new LS exist" << std::endl;
+	if (isEndOfRun()){
+	  std::cout << "Run " << runNumber_ << " is finished" << std::endl;
+	  return 0;
+	}
+      if ( nextLS() ){
 	std::cout << "***** checkNextEvent: at least one event has been processed from current LS and a new LS has been found " << std::endl;
       }
     }else{
@@ -136,7 +141,7 @@ namespace edm {
       // no more events in this lumi, wait
       std::cout << "NO MORE EVENTS -- wait" << std::endl;  
 
-      while(!checkNextLS()){
+      while(!nextLS()){
 	if (isEndOfRun()){
 	  std::cout << "Run " << runNumber_ << " is finished" << std::endl;
 	  return 0;
@@ -157,20 +162,32 @@ namespace edm {
     return true;
   }
 
-  bool DQMStreamerReader::checkNextLS() {
-    std::cout << "************ checkNextLS: check for LS " << currentLumiSection_ + 1 << std::endl;     
-    int nextLS = currentLumiSection_ + 1; 
-    if (checkNewData(nextLS) ){
+  bool DQMStreamerReader::nextLS() {
+    std::cout << "************ nextLS: check for LS " << currentLumiSection_ + 1 << std::endl;     
+    unsigned int nextLS = currentLumiSection_ + 1; 
+    int data = newData(nextLS);
+    if (data>0){
       std::cout << "New LS found: LS # " << nextLS  << std::endl;
       closeFile_();
       currentLumiSection_ +=1;
       streamerName_ = getDataFile(currentLumiSection_); 
       openNewFile(streamerName_);
       return true;
-    }else{
+    }
+    else{
+      if (data==-1){
       std::cout << "No new LS found: processing current LS " << currentLumiSection_ << std::endl;
       return false;
+      }
+      else {
+	if (data==0){
+	  std::cout << "New LS found with no events" << std::endl;
+	  currentLumiSection_ += 1;
+	  return false;
+	}
+      }
     }
+    return false;
   }
 
   void DQMStreamerReader::skip(int toSkip) {
@@ -186,18 +203,11 @@ namespace edm {
     }
   }
 
-  void DQMStreamerReader::closeFile_() {
-    std::cout << "************ closeFile_ " << streamerName_ << std::endl;     
-    if(streamReader_.get() != nullptr) streamReader_->closeStreamerFile();
-  }
-
   bool DQMStreamerReader::newHeader() {
-    std::cout << "************ newHeader " << std::endl;     
     return streamReader_->newHeader();
   }
 
   InitMsgView const* DQMStreamerReader::getHeader() {
-    std::cout << "************ getHeader " << std::endl;     
     InitMsgView const* header = streamReader_->startMessage();
 
     if(header->code() != Header::INIT) { //INIT Msg
@@ -215,6 +225,11 @@ namespace edm {
     processedEventPerLs_ += 1;
     std::cout << "************  getNextEvent " << " event processed " << processedEventPerLs_ << std::endl;      
     return streamReader_->currentRecord();
+  }
+
+  void DQMStreamerReader::closeFile_() {
+    std::cout << "************ closeFile_ " << streamerName_ << std::endl;     
+    if(streamReader_.get() != nullptr) streamReader_->closeStreamerFile();
   }
 
   void
