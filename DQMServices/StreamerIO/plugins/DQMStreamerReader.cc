@@ -35,6 +35,11 @@ DQMStreamerReader::DQMStreamerReader(ParameterSet const& pset,
 
   runNumber_ = pset.getUntrackedParameter<unsigned int>("runNumber");
   runInputDir_ = pset.getUntrackedParameter<std::string>("runInputDir");
+  hltSel_ = pset.getUntrackedParameter<std::vector<std::string> >("SelectEvents");
+
+  for (Strings::const_iterator i(hltSel_.begin()),e(hltSel_.end()); i!=e; ++i ){
+    std::cout << "DQMStreamer: Trigger Selection " << *i << " " << std::endl;
+  }
 
   minEventsPerLs_ = pset.getUntrackedParameter<int>("minEventsPerLumi");
   flagSkipFirstLumis_ = pset.getUntrackedParameter<bool>("skipFirstLumis");
@@ -106,12 +111,19 @@ void DQMStreamerReader::reset_() {
 
 void DQMStreamerReader::openFile_(std::string newStreamerFile_) {
   processedEventPerLs_ = 0;
+  edm::ParameterSet pset;
 
   streamReader_ = std::unique_ptr<StreamerInputFile>(
       new StreamerInputFile(newStreamerFile_, eventSkipperByID_));
 
   InitMsgView const* header = getHeaderMsg();
   deserializeAndMergeWithRegistry(*header, false);
+
+  Strings tnames;
+  header->hltTriggerNames( tnames );
+
+  pset.addParameter<Strings>( "SelectEvents", hltSel_ );
+  eventSelector_.reset( new TriggerSelector( pset, tnames ) );
 
   // our initialization
   processedEventPerLs_ = 0;
@@ -167,7 +179,7 @@ EventMsgView const* DQMStreamerReader::getEventMsg() {
 
   EventMsgView const* msg = streamReader_->currentRecord();
 
-  if (msg != nullptr) dumpEventView(msg);
+  //  if (msg != nullptr) dumpEventView(msg);
 
   return msg;
 }
@@ -283,6 +295,26 @@ bool DQMStreamerReader::checkNextEvent() {
   return true;
 }
 
+  bool DQMStreamerReader::acceptEvent(const EventMsgView* evtmsg ){
+    
+    std::vector<unsigned char> hltTriggerBits_;
+    int hltTriggerCount_ = evtmsg->hltCount();
+    if (hltTriggerCount_ > 0){
+      hltTriggerBits_.resize(1 + (hltTriggerCount_-1)/4);
+    }
+    evtmsg->hltTriggerBits(&hltTriggerBits_[0]);
+    
+    if ( eventSelector_->wantAll()
+	 || eventSelector_->acceptEvent( &hltTriggerBits_[0], evtmsg->hltCount() ) )
+      {
+	std::cout << "----****----- Events is accepted " << std::endl;
+	return true;
+      }else{
+      std::cout << "----****----- Events is not selected " << std::endl;
+      return false;
+    }
+  }
+
 void DQMStreamerReader::skip(int toSkip) {
   for (int i = 0; i != toSkip; ++i) {
     EventMsgView const* evMsg = prepareNextEvent();
@@ -313,6 +345,9 @@ void DQMStreamerReader::fillDescriptions(
 
   desc.addUntracked<std::string>("runInputDir")
       ->setComment("Directory where the DQM files will appear.");
+
+  desc.addUntracked<std::vector<std::string> >("SelectEvents")
+    ->setComment("HLT path to select events ");
 
   desc.addUntracked<int>("minEventsPerLumi", 1)
       ->setComment("Minimum number of events to process per lumisection, "
