@@ -21,7 +21,6 @@ namespace edm
   ):
   useOld_(true)
   {
-    std::cout << " Starting triggerSelector 1 **************" << std::endl;
     acceptAll_=false;
     eventSelector_.reset( new edm::EventSelector(pathspecs,names));
   }
@@ -34,7 +33,6 @@ namespace edm
   ):
   useOld_(old_)
   {
-    std::cout << " Starting triggerSelector 2 **************" << std::endl;
     acceptAll_=false;
     if (old_) {
       //old mode forced
@@ -56,11 +54,9 @@ namespace edm
       //now try with the SelectEvents 
       try {
 	Strings paths;
-	std::cout << " Starting SelectEvents **************" << std::endl;
 	paths = config.getParameter<Strings>("SelectEvents");
 	if (!paths.empty()) {
 	  for (Strings::const_iterator i(paths.begin()),e(paths.end()); i!=e; ++i ){
-	    std::cout << "Trigger Selection " << *i << " " << std::endl;
 	  }
 
 	  useOld_=true;
@@ -83,7 +79,6 @@ namespace edm
   ):
   useOld_(false)
   {
-    std::cout << " Starting triggerSelector 3 **************" << std::endl;
     init (trim(expression),triggernames);
   }
 

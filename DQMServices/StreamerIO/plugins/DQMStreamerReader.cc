@@ -263,11 +263,14 @@ EventMsgView const* DQMStreamerReader::prepareNextEvent() {
         // this means end of file, so close the file
         closeFile_();
       } else {
-        return eview;
+	if (!acceptEvent(eview)){
+          continue;
+	}else{
+	  return eview;
+	}
       }
     }
   }
-
   return eview;
 }
 
