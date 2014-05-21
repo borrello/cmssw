@@ -56,11 +56,7 @@ namespace edm
 	Strings paths;
 	paths = config.getParameter<Strings>("SelectEvents");
 	if (!paths.empty()) {
-	  for (Strings::const_iterator i(paths.begin()),e(paths.end()); i!=e; ++i ){
-	  }
-
 	  useOld_=true;
-
 	  eventSelector_.reset( new edm::EventSelector(config, triggernames));
 	  return;
 	}     
@@ -139,7 +135,6 @@ namespace edm
     int number_of_trigger_paths
   ) const
   {
-    //    edm::LogAbsolute("TriggerSelector")  << "Trigger selection based on trigger path " ;
     if (useOld_)
       return eventSelector_->acceptEvent(array_of_trigger_results,number_of_trigger_paths);
 
@@ -163,7 +158,6 @@ namespace edm
     }
     // Now make the decision, based on the HLTGlobalStatus tr,
     // which we have created from the supplied array of results
-    //    edm::LogAbsolute("TriggerSelector")  << "Trigger selection: status of trigger path " <<
       masterElement_->returnStatus(tr);
     return masterElement_->returnStatus(tr);
   }
