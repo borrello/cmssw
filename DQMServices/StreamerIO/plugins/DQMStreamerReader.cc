@@ -38,8 +38,6 @@ DQMStreamerReader::DQMStreamerReader(ParameterSet const& pset,
   hltSel_ =
       pset.getUntrackedParameter<std::vector<std::string> >("SelectEvents");
 
-  }
-
   minEventsPerLs_ = pset.getUntrackedParameter<int>("minEventsPerLumi");
   flagSkipFirstLumis_ = pset.getUntrackedParameter<bool>("skipFirstLumis");
   flagEndOfRunKills_ = pset.getUntrackedParameter<bool>("endOfRunKills");
